@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/Compose"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Compose" />
+        <item
+            android:id="@+id/inbox"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="Inbox" />
+        <item
+            android:id="@+id/sent_msg"
+            android:icon="@drawable/ic_menu_slideshow"
+            android:title="Sent Message" />
+        <item
+            android:id="@+id/mail"
+            android:icon="@drawable/ic_menu_manage"
+            android:title="mail" />
+    </group>
+
+
+
+</menu>
