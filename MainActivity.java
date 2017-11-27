@@ -1,128 +1,138 @@
-package com.esprit.pi.pidev;
+package com.grimg.customlistview;
 
-import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
-
 import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.esprit.pi.pidev.model.ResObj;
-import com.esprit.pi.pidev.model.User;
-import com.esprit.pi.pidev.remote.ApiUtils;
-import com.esprit.pi.pidev.remote.ServiceUser;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.grimg.customlistview.models.Item;
 
-import java.io.Serializable;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-EditText edEmail;
-EditText edPassword;
-Button btnLogin,btnInsc,senEmail;
-ServiceUser serviceUser;
-Context c;
+
+    ListView listView;
+    CustomAdapter adapter;
+    List<String> listTitles, listDescriptions;
+    public List<Item> listItems;
+
+    private String mJSONURLString = "http://10.0.2.2:18080/pidev-web/rest/documents";
+
+    RequestQueue requestQueue;
+
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        c = getApplicationContext();
         setContentView(R.layout.activity_main);
-        edEmail = (EditText) findViewById(R.id.edEmail);
-        edPassword = (EditText) findViewById(R.id.edPassword);
-        btnLogin = (Button) findViewById(R.id.btnLogin);
-        btnInsc = (Button) findViewById(R.id.btnInsc);
-        serviceUser = ApiUtils.getServiceUser();
-        senEmail = (Button)findViewById(R.id.sendmailmain);
+
+        listView = (ListView) findViewById(R.id.listView);
+
+        listTitles = new ArrayList<>();
+        listDescriptions = new ArrayList<>();
+        listItems = new ArrayList<>();
 
 
-        senEmail.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(MainActivity.this,SendMailActivity.class);
-                startActivity(i);
 
-            }
-        });
+        requestQueue = Volley.newRequestQueue(this);
+        adapter = new CustomAdapter(MainActivity.this, R.layout.item, listItems);
+        sendRequest();
 
-        btnLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String email = edEmail.getText().toString();
-                String password = edPassword.getText().toString();
-                //validate form
-                if(validateLogin(email,password)){
-                    //do login
-                    DoLogin(email,password);
-                }
-            }
-        });
 
-        btnInsc.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent i = new Intent(c,UserActivity.class);
-                startActivity(i);
-            }
-        });
     }
 
-    private Boolean validateLogin(final String email,final String password){
-        if(email==null || email.trim().length()==0){
-            Toast.makeText(this, "email is required",Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        if(password==null || password.trim().length()==0){
-            Toast.makeText(this, "password is required",Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        return  true;
-    }
-    private void DoLogin(final String email, final String password){
-        Call<User> call=serviceUser.login(email,password);
-        call.enqueue(new Callback<User>() {
-            @Override
-            public void onResponse(Call<User> call, Response<User> response) {
-                if (response.isSuccessful()) {
-                    User u= response.body();
-                    if (u != null) {
-                        //login start main activvity
-                        /* u = new User() ;
-                        u.setFirstname(u.getFirstname());
-                        u.setLastname(u.getLastname(k));
-                        u.setEmail(u.getEmail());
-                        u.setSalaire(u.getSalaire());
-                        u.setAge(u.getAge());
-                        u.setEmail(u.getEmail());
-                        u.setCin(u.getCin());*/
+    public void sendRequest() {
 
-                        Intent intent = new Intent(MainActivity.this,Main2Activity.class);
-                        intent.putExtra("user",  u);
 
-                        startActivity(intent);
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                mJSONURLString,
+                null,
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
 
+                        listView.setAdapter(adapter);
+                        // Process the JSON
+                        try{
+                            // Loop through the array elements
+                            for(int i=0;i<response.length();i++){
+                                // Get current json object
+                                final JSONObject student = response.getJSONObject(i);
+
+                                // Get the current student (json object) data
+                                int id = student.getInt("id");
+                                String name = student.getString("name");
+                                String etat = student.getString("etat");
+                                JSONObject user= student.getJSONObject("user");
+                                String usrname = user.getString("lastname");
+
+
+
+                                Item item = new Item(String.valueOf(id)  ," Name: " + name +" \n Etat: " +etat + " \n User: " + usrname);
+                                listItems.add(item);
+
+                                //items clicks on list view
+
+                               listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                    @Override
+                                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                        String itemTitle = ((TextView) view.findViewById(R.id.txtTitle)).getText().toString();
+                                        String itemTitle2 = ((TextView) view.findViewById(R.id.txtDescription)).getText().toString();
+
+                                        //open the activity and pass the data
+                                        Intent intent = new Intent(getApplicationContext(), ItemActivity.class);
+                                        intent.putExtra("titles", itemTitle);
+                                        intent.putExtra("desc", itemTitle2);
+
+
+                                        startActivity(intent);
+                                    }
+                                });
+
+                               /* listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                    @Override
+                                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                                        Intent intent = new Intent(getApplicationContext(), ItemActivity.class);
+                                        intent.putExtra("EXTRA_ID", String.valueOf());
+                                        startActivity(intent);
+                                    }
+                                }); */
+
+                            }
+
+                        }catch (JSONException e){
+                            e.printStackTrace();
+                        }
                     }
-                } else {
-                    Toast.makeText(MainActivity.this, "the email or password is incorrect", Toast.LENGTH_SHORT).show();
+                },
+                new Response.ErrorListener(){
+                    @Override
+                    public void onErrorResponse(VolleyError error){
+                        Toast.makeText(MainActivity.this, error.toString(), Toast.LENGTH_LONG).show();
+                    }
                 }
-                Toast.makeText(MainActivity.this, "Error please try again", Toast.LENGTH_SHORT).show();
+        );
 
-        }
-
-            @Override
-            public void onFailure(Call<User> call, Throwable t) {
-                Toast.makeText(MainActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-
-
-
+        // Add JsonArrayRequest to the RequestQueue
+        requestQueue.add(jsonArrayRequest);
     }
-
 }
